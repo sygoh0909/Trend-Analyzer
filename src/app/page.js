@@ -1,24 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  useEffect(() => {
-    // Load the file from public folder
-    fetch("/videos.csv")
-      .then(res => res.blob())
-      .then(fileBlob => {
-        const formData = new FormData();
-        formData.append("file", fileBlob, "videos.csv");
+  const [trends, setTrends] = useState(null);
 
-        return fetch("https://primary-production-169d0.up.railway.app/webhook/get-trends", {
-          method: "POST",
-          body: formData,
-        });
-      })
+  useEffect(() => {
+    fetch("https://primary-production-169d0.up.railway.app/webhook/get-trends")
       .then(res => res.json())
-      .then(data => console.log("Trend results:", data));
+      .then(data => setTrends(data));
   }, []);
 
-  return <h1>Uploading CSV to n8n...</h1>;
+  return (
+    <div>
+      <h1>Trend Analysis</h1>
+      <pre>{JSON.stringify(trends, null, 2)}</pre>
+    </div>
+  );
 }
