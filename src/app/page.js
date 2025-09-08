@@ -1,24 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 
 export default function Home() {
-  const [trends, setTrends] = useState(null);
+  useEffect(() => {
+    // Load the file from public folder
+    fetch("/videos.csv")
+      .then(res => res.blob())
+      .then(fileBlob => {
+        const formData = new FormData();
+        formData.append("file", fileBlob, "videos.csv");
 
-  // useEffect(() => {
-  //   fetch("http://localhost:5678/webhook/trends")
-  //     .then(res => res.json())
-  //     .then(data => setTrends(data));
-  // }, []);
+        return fetch("https://primary-production-169d0.up.railway.app/webhook/get-trends", {
+          method: "POST",
+          body: formData,
+        });
+      })
+      .then(res => res.json())
+      .then(data => console.log("Trend results:", data));
+  }, []);
 
-  return (
-    <div>
-      <h1>Trend Analysis</h1>
-      {trends ? (
-        <pre>{JSON.stringify(trends, null, 2)}</pre>
-      ) : (
-        "Loading trends..."
-      )}
-    </div>
-  );
+  return <h1>Uploading CSV to n8n...</h1>;
 }
