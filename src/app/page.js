@@ -10,7 +10,7 @@ export default function Home() {
         const formData = new FormData();
         formData.append("file", fileBlob, "videos.csv");
 
-        return fetch("https://primary-production-169d0.up.railway.app/webhook/get-trends", {
+        return fetch("https://primary-production-e0065.up.railway.app/webhook/get-trends", {
           method: "POST",
           body: formData,
         });
