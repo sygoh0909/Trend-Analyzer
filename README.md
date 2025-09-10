@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## 📊 AI-Powered Trend Analyzer
 
-## Getting Started
+An end-to-end system that analyzes video datasets (e.g., YouTube CSV exports) to identify emerging trends using tags, keywords, and metadata.
+Built with Next.js (frontend) and n8n (workflow automation + AI pipelines).
 
-First, run the development server:
+### 🚀 Features
 
+- Upload and process CSV datasets containing video metadata.
+
+- Extract top tags and keywords with trend status (emerging, stable, decaying).
+
+- Prototype pipeline for trend analysis (decay/freshness indicators).
+
+- Flexible hosting options (local, free cloud, or paid production).
+
+### 🛠️ Tech Stack
+
+- Frontend: Next.js (React, Tailwind, Vercel for hosting)
+
+- Backend Workflow Engine: n8n (self-hosted via Railway, Render or n8n Cloud)
+
+- File Handling: CSV ingestion via webhook
+
+- Deployment/Hosting Options: Free (local/ngrok, Vercel, Railway, Render) or Paid (n8n Cloud, Railway/Render Pro plans)
+
+## ⚙️ Setup & Usage
+Clone Repo
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/your-username/trend-analyzer.git
+cd trend-analyzer
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Frontend (Next.js)
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Install dependencies:
+```bash
+npm install
+```
+Run locally:
+```bash
+npm run dev
+```
+Now the app is available at http://localhost:3000.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Backend (n8n Workflow Engine)
+#### Option A: Run locally
 
-## Learn More
+Install n8n globally (through cmd):
+```bash
+npm install -g n8n
+```
 
-To learn more about Next.js, take a look at the following resources:
+Start n8n:
+```bash
+n8n
+```
+Access workflow editor: http://localhost:5678
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Option B: Expose locally with ngrok
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Expose your n8n so Next.js can call it:
+```bash
+ngrok config add-authtoken YOUR_AUTH_TOKEN
+ngrok http 5678
+```
 
-## Deploy on Vercel
+You’ll get a public URL like:
+```bash
+https://abcd1234.ngrok-free.app
+```
+Use this in your Next.js fetch calls.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### Option C: Free Cloud Hosting
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Frontend (Next.js) → Deploy on Vercel
+
+- Backend (n8n) → Deploy on:
+
+- Railway/Render (free tier)
+
+#### Option D: Paid Hosting
+
+- n8n Cloud (managed SaaS)
+
+- Paid tiers of Railway/Render for higher reliability
+
+### 🌐 Environment Variables
+
+For cloud deployment, configure these variables:
+```bash
+N8N_HOST=0.0.0.0
+N8N_PORT=5678
+N8N_EDITOR_BASE_URL=https://your-domain.com
+WEBHOOK_TUNNEL_URL=https://your-domain.com
+N8N_ENDPOINT_WEBHOOK=/webhook
+N8N_API_ALLOW_CORS=true
+```
+(ℹ️ Railway auto-manages ports; explicit config may not be required.)
+
+### 📂 Workflow Example
+
+1. Webhook Node – Receive CSV file upload.
+
+2. Spreadsheet File/Extract From File Node – Parse CSV data.
+
+3. Function/Code Node – Extract tags, keywords, and calculate trend status.
+
+4. Respond to Webhook – Return JSON result to Next.js frontend.
+
+### 📦 Deployment Flow
+
+- Frontend: Deploy to Vercel → production-ready instantly.
+
+- Backend: Deploy n8n to Railway → expose webhook endpoints.
+
+- Integration: Point Next.js fetch to your webhook URL.
+
+### 📈 Roadmap / Future Work
+
+- 🎵 Audio Analysis → Extract spoken keywords from videos using speech-to-text.
+
+- 📊 Advanced ML Models → Predict trend lifecycle (growth, peak, decay).
+
+- 🌍 Multi-Platform Support → Add TikTok, Instagram, Facebook, Xiaohongshu.
+
+- 📈 Interactive Dashboard → Rich charts & visual insights for creators/marketers.
+
+- 🔗 Real-Time APIs → Direct integration with YouTube/TikTok APIs instead of CSV uploads.
