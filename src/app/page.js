@@ -15,7 +15,7 @@ export default function Home() {
         const formData = new FormData();
         formData.append("file", fileBlob, "videos.csv");
 
-        return fetch("https://n8n-ea7t.onrender.com/webhook/get-trends", {
+        return fetch("https://n8n-92ow.onrender.com/webhook/get-trends", {
           method: "POST",
           body: formData,
         });
