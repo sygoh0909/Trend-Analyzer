@@ -1,0 +1,116 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "binaryPropertyName": "file0",
+        "options": {
+          "delimiter": ","
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        288,
+        32
+      ],
+      "id": "d21ecc77-abbb-4d39-bfd6-99d0bead53d8",
+      "name": "Extract from File",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "get-trends",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "binaryPropertyName": "file"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        32
+      ],
+      "id": "a6932ecc-adc4-4113-bcc7-624288fad23f",
+      "name": "Webhook",
+      "webhookId": "71735e3c-2a24-4503-b3e9-c8a16d2843a3",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\n\n// Config (tweak these)\nconst TOP_N = 10;\nconst WINDOW = 2; // months window for averaging last vs previous\nconst GROWTH_THRESHOLD = 0.15; // 15% change required to be considered emerging/decaying\nconst MIN_AVG_COUNT = 3; // minimum average mentions to consider a trend (avoid noise)\n\n// Tag field names to try\nconst TAG_FIELDS = [\"tags\", \"videos.tags\", \"video_tags\"];\n\n// Stopwords (extend as needed)\nconst STOPWORDS = new Set([\n  \"the\",\"a\",\"an\",\"and\",\"or\",\"but\",\"so\",\"for\",\"nor\",\"yet\",\n  \"in\",\"on\",\"at\",\"to\",\"with\",\"from\",\"by\",\"about\",\"into\",\"onto\",\n  \"over\",\"under\",\"between\",\"through\",\n  \"i\",\"me\",\"my\",\"we\",\"us\",\"our\",\"you\",\"your\",\"he\",\"she\",\"they\",\"it\",\"this\",\"that\",\"these\",\"those\",\n  \"is\",\"am\",\"are\",\"was\",\"were\",\"be\",\"been\",\"do\",\"does\",\"did\",\"have\",\"has\",\"had\",\"will\",\"would\",\"can\",\n  \"could\",\"may\",\"might\",\"must\",\"what\",\"which\",\"who\",\"when\",\"where\",\"why\",\"how\",\n  \"very\",\"too\",\"also\",\"just\",\"only\",\"still\",\"then\",\"there\",\"here\",\"all\",\"any\",\"more\",\"most\",\"other\",\"some\"\n]);\n\n// Helpers\nfunction normalizeTag(raw) {\n  if (raw == null) return null;\n  let s = String(raw).toLowerCase().trim();\n  // remove surrounding brackets/quotes/parens and leading/trailing punctuation\n  s = s.replace(/^[\\s\"'`[\\](){}]+|[\\s\"'`[\\](){}]+$/g, \"\");\n  // replace internal punctuation (except spaces and hyphens) with nothing\n  s = s.replace(/[^a-z0-9\\s-]/g, \"\");\n  // normalize hyphens to spaces, collapse whitespace\n  s = s.replace(/-/g, \" \").replace(/\\s+/g, \" \").trim();\n  if (s.length === 0) return null;\n  return s;\n}\n\nfunction normalizeWord(raw) {\n  if (raw == null) return null;\n  let s = String(raw).toLowerCase().trim();\n  // replace punctuation with space, hyphens to space\n  s = s.replace(/[^a-z0-9\\s-]/g, \" \").replace(/-/g, \" \").replace(/\\s+/g, \" \").trim();\n  if (s.length < 3) return null; // filter very short tokens\n  if (STOPWORDS.has(s)) return null;\n  // optional naive singularization: if endsWith 's' and length>4, drop trailing s\n  if (s.endsWith(\"s\") && s.length > 4) s = s.slice(0, -1);\n  return s;\n}\n\nfunction monthKeyFromDate(d) {\n  return d.toISOString().slice(0, 7); // \"YYYY-MM\"\n}\n\nfunction computeTrendMetrics(bucketsObj) {\n  // bucketsObj: { \"2025-07\": 12, \"2025-08\": 5, ... }\n  const months = Object.keys(bucketsObj).sort();\n  if (months.length < 1) return { status: \"unknown\", avgPrev: 0, avgLast: 0, growthRate: 0 };\n\n  // choose last WINDOW months and previous WINDOW months\n  const lastMonths = months.slice(-WINDOW);\n  const prevMonths = months.slice(-2 * WINDOW, -WINDOW);\n\n  const sum = (arr) => arr.reduce((a,b)=>a+b,0);\n  const valuesFor = (arr) => arr.map(m => bucketsObj[m] ?? 0);\n\n  const avgLast = lastMonths.length ? (sum(valuesFor(lastMonths)) / lastMonths.length) : 0;\n  const avgPrev = prevMonths.length ? (sum(valuesFor(prevMonths)) / prevMonths.length) : 0;\n\n  // growthRate: relative change compared to avgPrev\n  let growthRate = 0;\n  if (avgPrev > 0) growthRate = (avgLast - avgPrev) / avgPrev;\n  else if (avgLast > 0) growthRate = Infinity; // from 0 to positive = strong emergence\n\n  // classification with thresholds & noise guard\n  if ((avgLast < MIN_AVG_COUNT) && (avgPrev < MIN_AVG_COUNT)) return { status: \"unknown\", avgPrev, avgLast, growthRate };\n\n  if (avgPrev === 0 && avgLast >= MIN_AVG_COUNT) return { status: \"emerging\", avgPrev, avgLast, growthRate };\n  if (growthRate === Infinity || growthRate > GROWTH_THRESHOLD) return { status: \"emerging\", avgPrev, avgLast, growthRate };\n  if (growthRate < -GROWTH_THRESHOLD) return { status: \"decaying\", avgPrev, avgLast, growthRate };\n  return { status: \"stable\", avgPrev, avgLast, growthRate };\n}\n\n\n// Data structures\nconst tagCounts = new Map();\nconst keywordCounts = new Map();\nconst tagBuckets = {};     // tag -> { \"YYYY-MM\": count }\nconst keywordBuckets = {}; // keyword -> { \"YYYY-MM\": count }\nlet latestPublished = null;\n\n// Process rows\nfor (const row of rows) {\n  const data = row.json || {};\n  // parse publishedAt if present\n  const pub = data[\"publishedAt\"] ? new Date(data[\"publishedAt\"]) : null;\n  const ym = (pub && !isNaN(pub.getTime())) ? monthKeyFromDate(pub) : null;\n  if (pub && !isNaN(pub.getTime())) {\n    if (!latestPublished || pub > latestPublished) latestPublished = pub;\n  }\n\n  // ---- TAGS: collect unique per video to avoid inflation\n  let tagsStr = null;\n  for (const k of TAG_FIELDS) {\n    if (data[k]) { tagsStr = String(data[k]); break; }\n  }\n  if (tagsStr) {\n    const perVideo = new Set();\n    for (const rawTag of tagsStr.split(\",\")) {\n      const t = normalizeTag(rawTag);\n      if (t) perVideo.add(t);\n    }\n    for (const t of perVideo) {\n      tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);\n      if (ym) {\n        if (!tagBuckets[t]) tagBuckets[t] = {};\n        tagBuckets[t][ym] = (tagBuckets[t][ym] ?? 0) + 1;\n      }\n    }\n  }\n\n  // ---- KEYWORDS from title + description (unique per video)\n  const text = `${data[\"title\"] || \"\"} ${data[\"description\"] || \"\"}`;\n  if (text.trim()) {\n    const tokens = text\n      .toLowerCase()\n      .split(/\\s+/)\n      .map(tok => normalizeWord(tok))\n      .filter(Boolean);\n\n    const perVideoWords = new Set(tokens);\n    for (const w of perVideoWords) {\n      keywordCounts.set(w, (keywordCounts.get(w) ?? 0) + 1);\n      if (ym) {\n        if (!keywordBuckets[w]) keywordBuckets[w] = {};\n        keywordBuckets[w][ym] = (keywordBuckets[w][ym] ?? 0) + 1;\n      }\n    }\n  }\n}\n\n// Build top lists and compute trend metrics\nconst topTags = [...tagCounts.entries()].sort((a,b)=>b[1]-a[1]).slice(0, TOP_N).map(([tag,count]) => {\n  const buckets = tagBuckets[tag] || {};\n  const metrics = computeTrendMetrics(buckets);\n  return {\n    tag,\n    count,\n    trendStatus: metrics.status,\n    avgPrev: Number(metrics.avgPrev.toFixed(2)),\n    avgLast: Number(metrics.avgLast.toFixed(2)),\n    growthRatePct: metrics.growthRate === Infinity ? null : Number((metrics.growthRate * 100).toFixed(1))\n  };\n});\n\nconst topKeywords = [...keywordCounts.entries()].sort((a,b)=>b[1]-a[1]).slice(0, TOP_N).map(([word,count]) => {\n  const buckets = keywordBuckets[word] || {};\n  const metrics = computeTrendMetrics(buckets);\n  return {\n    word,\n    count,\n    trendStatus: metrics.status,\n    avgPrev: Number(metrics.avgPrev.toFixed(2)),\n    avgLast: Number(metrics.avgLast.toFixed(2)),\n    growthRatePct: metrics.growthRate === Infinity ? null : Number((metrics.growthRate * 100).toFixed(1))\n  };\n});\n\n// freshness: latest published if available, otherwise now\nconst trendFreshness = latestPublished ? latestPublished.toISOString() : new Date().toISOString();\n\nreturn [\n  {\n    json: {\n      trendFreshness,\n      totalVideos: rows.length,\n      topTags,\n      topKeywords\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        32
+      ],
+      "id": "f0f941e5-81a9-48d3-b163-a6edefd34e15",
+      "name": "Code",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        768,
+        32
+      ],
+      "id": "659aa4ea-7b6e-4d8d-9081-edf48452fe9a",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b00a0b09-0bdc-47cf-afd6-20d39820784b",
+  "meta": {
+    "instanceId": "bccc88169a6f93725c560dc74fc71f3ca9487dd3ed3737db530f68579b88a67d"
+  },
+  "id": "wiHxbfG5J1CRfyqB",
+  "tags": []
+}
