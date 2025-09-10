@@ -15,7 +15,7 @@ export default function Home() {
         const formData = new FormData();
         formData.append("file", fileBlob, "videos.csv");
 
-        return fetch("https://1573e77661a1.ngrok-free.app/webhook/get-trends", {
+        return fetch("https://n8n-ea7t.onrender.com/webhook/get-trends", {
           method: "POST",
           body: formData,
         });
