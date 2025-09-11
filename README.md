@@ -126,3 +126,5 @@ N8N_API_ALLOW_CORS=true
 - 📈 Interactive Dashboard → Rich charts & visual insights for creators/marketers.
 
 - 🔗 Real-Time APIs → Direct integration with YouTube/TikTok APIs instead of CSV uploads.
+
+- 🔔 Trend Alerts → Notify users instantly (via email, Slack, or dashboard pop-ups) when new or emerging trends are detected.
