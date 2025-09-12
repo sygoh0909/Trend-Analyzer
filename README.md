@@ -100,11 +100,11 @@ N8N_API_ALLOW_CORS=true
 
 ### 📂 Workflow Explanation
 ```bash
-+--------------------+
-|  Next.js Frontend  |
-|  - Upload CSV File |
-|  - FormData (POST) |
-+--------------------+
++---------------------+
+|  Next.js Frontend   |
+|  - Include CSV File |
+|  - FormData (POST)  |
++---------------------+
           |
           v
 +-----------------------+
