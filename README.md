@@ -98,15 +98,49 @@ N8N_API_ALLOW_CORS=true
 ```
 (ℹ️ Railway auto-manages ports; explicit config may not be required.)
 
-### 📂 Workflow Example
-
-1. Webhook Node – Receive CSV file upload.
-
-2. Spreadsheet File/Extract From File Node – Parse CSV data.
-
-3. Function/Code Node – Extract tags, keywords, and calculate trend status.
-
-4. Respond to Webhook – Return JSON result to Next.js frontend.
+### 📂 Workflow Explanation
+```bash
++--------------------+
+|  Next.js Frontend  |
+|  - Upload CSV File |
+|  - FormData (POST) |
++--------------------+
+          |
+          v
++-----------------------+
+| n8n Webhook Endpoint  |
+|  (Receives File)      |
++-----------------------+
+          |
+          v
++-----------------------------+
+| Parse CSV Node              |
+|  - Convert CSV to JSON      |
++-----------------------------+
+          |
+          v
++----------------------------------+
+| Function/Code Node (Custom Code) |
+|  - Extract tags & keywords       |
+|  - Remove stopwords              |
+|  - Count frequencies             |
+|  - Bucket by month               |
+|  - Compute trend status          |
++----------------------------------+
+          |
+          v
++-----------------------------+
+| Webhook Response            |
+|  - JSON: topTags,           |
+|    topKeywords, freshness   |
++-----------------------------+
+          |
+          v
++--------------------+
+|  Next.js Frontend  |
+|  - Display Results |
++--------------------+
+```
 
 ### 📦 Deployment Flow
 
