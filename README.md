@@ -128,4 +128,4 @@ N8N_API_ALLOW_CORS=true
 
 - 🔗 Real-Time APIs → Direct integration with YouTube/TikTok APIs instead of CSV uploads.
 
-- 🔔 Trend Alerts → Notify users instantly (via email, Slack, or dashboard pop-ups) when new or emerging trends are detected.
+- 🔔 Trend Alerts → Notify users instantly (via email, SMS, or push notifications) when new or emerging trends are detected.
