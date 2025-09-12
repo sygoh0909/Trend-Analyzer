@@ -27,7 +27,9 @@ const App = () => {
         formData.append("file", fileBlob, "videos.csv");
 
         // Use the new API endpoint
-        return fetch("https://abc7d9128578.ngrok-free.app/webhook/get-trends", {
+        return fetch("primary-production-3afc2.up.railway.app", { // changed to run local/deployed backend services
+          // primary-production-3afc2.up.railway.app
+          //can use localhost, ngrok, or railway connection link
           method: "POST",
           body: formData,
         });
